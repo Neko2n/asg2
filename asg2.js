@@ -41,14 +41,18 @@ const MAX_ZOOM = 2;
 g_GlobalRotateXMatrix = new Matrix4();
 g_GlobalRotateYMatrix = new Matrix4();
 g_GlobalScaleMatrix = new Matrix4();
+g_LastFrame = 0;
+g_FrameDelta = 0;
+g_FrameCount = 0;
+g_FPSCounter = null;
 
 Shapes = [];
 
 // Animates the animal.
-let frame = 0;
 function animate() {
-    frame += 1;
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    // Draw and animate geometry
     let g_matrix = new Matrix4();
     g_matrix.multiply(g_GlobalRotateYMatrix);
     g_matrix.multiply(g_GlobalRotateXMatrix);
@@ -57,9 +61,20 @@ function animate() {
     for (const shape of Shapes) {
         shape.draw();
         if (shape.parent instanceof geometry) continue;
-        const s = Math.sin(frame/100)/10
+        const s = Math.sin(performance.now()/1000)/10
         shape.translate(0, s, 0);
     }
+
+    // Update FPS Counter
+    g_FrameDelta += performance.now() - g_LastFrame;
+    g_LastFrame = performance.now();
+    g_FrameCount += 1;
+    if (g_FrameDelta > 1000) {
+        g_FPSCounter.innerText = g_FrameCount;
+        g_FrameCount = 0;
+        g_FrameDelta = 0;
+    }
+
     requestAnimationFrame(animate);
 }
 
@@ -99,6 +114,9 @@ function hookElements() {
             const zoom = (this.value * MAX_ZOOM) + (0.5 / MAX_ZOOM);
             g_GlobalScaleMatrix.setScale(zoom, zoom, zoom);
         });
+    
+    // FPS counter
+    g_FPSCounter = document.getElementById("fps")
 }
 
 function initGL() {
@@ -152,16 +170,28 @@ function defineShapes() {
     Shapes.push(body);
 
     let wingLeft = new cube(body, [0.2, 0.16, 0.15]);
-    wingLeft.translate(0, -0.2, 0.5);
-    wingLeft.scale(0.1, 0.3, 0.5);
-    wingLeft.rotate(0, 0, 0);
+    wingLeft.translate(-0.1, -0.2, 0.5);
+    wingLeft.scale(0.05, 0.3, 0.5);
+    wingLeft.rotate(-30, -30, 0);
     Shapes.push(wingLeft);
 
     let wingRight = new cube(body, [0.2, 0.16, 0.15]);
-    wingRight.translate(0, -0.2, -0.5);
-    wingRight.scale(0.1, 0.3, 0.5);
-    wingRight.rotate(0, 0, 0);
+    wingRight.translate(-0.1, -0.2, -0.5);
+    wingRight.scale(0.05, 0.3, 0.5);
+    wingRight.rotate(30, 30, 0);
     Shapes.push(wingRight);
+
+    let wingLeftOuter = new cube(wingLeft, [0.2, 0.16, 0.15]);
+    wingLeftOuter.translate(-0.7, -0.15, 1.2);
+    wingLeftOuter.scale(0.05, 0.4, 0.6);
+    wingLeftOuter.rotate(-50, -50, 10);
+    Shapes.push(wingLeftOuter);
+
+    let wingRightOuter = new cube(wingRight, [0.2, 0.16, 0.15]);
+    wingRightOuter.translate(-0.1, -0.2, -0.5);
+    wingRightOuter.scale(0.05, 0.3, 0.5);
+    wingRightOuter.rotate(30, 30, 0);
+    Shapes.push(wingRightOuter);
 }
 
 function connectVariablesToGLSL() {

@@ -1,15 +1,18 @@
 class geometry {
   constructor(parent) {
     this.vertices = new Float32Array();
+    this.matrix = new Matrix4();
     this.modelMatrix = new Matrix4();
     this.translation = [0.0, 0.0, 0.0];
     this.rotation = [0.0, 0.0, 0.0];
     this.size = [0.0, 0.0, 0.0];
-    this.origin = [0.0, 0.0, 0.0];
+    this.offset = [0.0, 0.0, 0.0];
     this.children = [];
     if (parent instanceof geometry) {
       this.parent = parent;
       parent.children.push(this);
+      const [x, y, z] = parent.translation;
+      this.translate(x, y, z);
     }
   }
 
@@ -22,8 +25,8 @@ class geometry {
       const [cx, cy, cz] = child.translation;
       child.translate(cx+dx, cy+dy, cz+dz);
     }
+    this.updateMatrix();
   }
-
 
   // Rotates the geometry around its local origin. 
   // If it has a parent, this is the parent's position. Otherwise, this is (0, 0, 0)
@@ -45,6 +48,7 @@ class geometry {
       const [cx, cy, cz] = child.rotation;
       child.rotate(cx+dx, cy+dy, cz+dz);
     }
+    this.updateMatrix();
   }
 
   // Scales the geometry from its local origin.
@@ -52,10 +56,19 @@ class geometry {
   // Also scales with its parent's scale.
   scale(x, y, z) {
     this.size = [x, y, z];
+    this.updateMatrix();
+  }
+
+  // Sets the origin of the model.
+  offset(x, y, z) {
+    x = Math.min(Math.max(x, 0), 1);
+    y = Math.min(Math.max(y, 0), 1);
+    z = Math.min(Math.max(z, 0), 1);
+    this.offset = [x, y, z];
   }
 
   // Returns the compiled model matrix of this geometry.
-  getMatrix() {
+  updateMatrix() {
     let model = new Matrix4().set(this.modelMatrix);
     const [tx, ty, tz] = this.translation;
     model.multiply(new Matrix4().setTranslate(tx, ty, tz));
@@ -64,18 +77,14 @@ class geometry {
     model.multiply(rotate);
     const [sx, sy, sz] = this.size;
     model.multiply(new Matrix4().setScale(sx, sy, sz));
-    return model;
+    this.matrix.set(model);
   }
 
   // Draws the geometry shape.
   draw() {
-    const matrix = this.getMatrix();
     let u_ModelMatrix = gl.getUniformLocation(gl.program, "u_ModelMatrix");
-    gl.uniformMatrix4fv(u_ModelMatrix, false, matrix.elements);
+    gl.uniformMatrix4fv(u_ModelMatrix, false, this.matrix.elements);
     gl.bufferData(gl.ARRAY_BUFFER, this.vertices, gl.STATIC_DRAW);
     gl.drawArrays(gl.TRIANGLES, 0, this.vertices.length / 6);
-    // for (const child of this.children) {
-    //   child.draw();
-    // }
   }
 }
