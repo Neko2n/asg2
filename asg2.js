@@ -45,6 +45,8 @@ g_LastFrame = 0;
 g_FrameDelta = 0;
 g_FrameCount = 0;
 g_FPSCounter = null;
+g_Frozen = false;
+g_Poked = 0;
 
 Shapes = [];
 RootShape = null;
@@ -58,9 +60,21 @@ function renderScene() {
     gl.uniformMatrix4fv(u_GlobalMatrix, false, g_matrix.elements);
     for (const shape of Shapes) {
         shape.render();
-        if (shape.parent instanceof geometry) continue;
-        const s = Math.sin(performance.now()/1000)/10;
-        shape.translate(0, s, 0);
+    }
+}
+
+// Animates the model.
+function animate() {
+    if (g_Frozen === true) return;
+    const t = performance.now();
+    if (t - g_Poked < 3000) {
+        // Poking animation
+        return;
+    }
+    // Idle animation
+    if (RootShape instanceof geometry) {
+        const s = Math.sin(t/1000)/10;
+        RootShape.translate(0, s, 0);
     }
 }
 
@@ -72,10 +86,7 @@ function tick() {
     renderScene();
 
     // Animate geometry
-    if (RootShape instanceof geometry) {
-        const s = Math.sin(performance.now()/1000)/10;
-        RootShape.translate(0, s, 0);
-    }
+    animate();
 
     // Update FPS Counter
     g_FrameDelta += performance.now() - g_LastFrame;
@@ -98,6 +109,9 @@ function hookElements() {
     canvas.addEventListener('mousedown', (event) => {
         dragging = true;
         mouse_pos = [event.clientX, event.clientY];
+        if (event.shiftKey) {
+            g_Poked = performance.now(); // Start poke animation
+        }
     });
     canvas.addEventListener('mousemove', (event) => {
         if (!dragging) return;
@@ -129,6 +143,12 @@ function hookElements() {
     
     // FPS counter
     g_FPSCounter = document.getElementById("fps")
+
+    // Animation toggle
+    document.getElementById("toggle-anim")
+        .addEventListener('mousedown', function() {
+            g_Frozen = !g_Frozen;
+        });
 }
 
 function initGL() {
