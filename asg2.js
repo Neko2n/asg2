@@ -47,22 +47,34 @@ g_FrameCount = 0;
 g_FPSCounter = null;
 
 Shapes = [];
+RootShape = null;
 
-// Animates the animal.
-function animate() {
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-    // Draw and animate geometry
+// Draws geometry.
+function renderScene() {
     let g_matrix = new Matrix4();
     g_matrix.multiply(g_GlobalRotateYMatrix);
     g_matrix.multiply(g_GlobalRotateXMatrix);
     g_matrix.multiply(g_GlobalScaleMatrix);
     gl.uniformMatrix4fv(u_GlobalMatrix, false, g_matrix.elements);
     for (const shape of Shapes) {
-        shape.draw();
+        shape.render();
         if (shape.parent instanceof geometry) continue;
-        const s = Math.sin(performance.now()/1000)/10
+        const s = Math.sin(performance.now()/1000)/10;
         shape.translate(0, s, 0);
+    }
+}
+
+// Draws geometry and animates the model.
+function tick() {
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    // Draw geometry
+    renderScene();
+
+    // Animate geometry
+    if (RootShape instanceof geometry) {
+        const s = Math.sin(performance.now()/1000)/10;
+        RootShape.translate(0, s, 0);
     }
 
     // Update FPS Counter
@@ -75,7 +87,7 @@ function animate() {
         g_FrameDelta = 0;
     }
 
-    requestAnimationFrame(animate);
+    requestAnimationFrame(tick);
 }
 
 function hookElements() {
@@ -144,6 +156,7 @@ function defineShapes() {
     head.scale(0.25, 0.25, 0.25);
     head.rotate(0, 90, 0);
     Shapes.push(head);
+    RootShape = head;
 
     let beak = new triangle(head, [1, 0.95, 0.8]);
     beak.translate(0.26, 0.4, 0);
@@ -252,5 +265,5 @@ function main() {
     connectVariablesToGLSL();
     hookElements();
     defineShapes();
-    animate();
+    tick();
 }

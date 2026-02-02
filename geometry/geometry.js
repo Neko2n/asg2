@@ -81,7 +81,7 @@ class geometry {
   }
 
   // Draws the geometry shape.
-  draw() {
+  render() {
     let u_ModelMatrix = gl.getUniformLocation(gl.program, "u_ModelMatrix");
     gl.uniformMatrix4fv(u_ModelMatrix, false, this.matrix.elements);
     gl.bufferData(gl.ARRAY_BUFFER, this.vertices, gl.STATIC_DRAW);
