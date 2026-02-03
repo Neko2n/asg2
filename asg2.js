@@ -128,18 +128,13 @@ function hookElements() {
     canvas.addEventListener('mouseexit', (event) => {
         dragging = false;
     });
-    canvas.addEventListener('mousescroll', (event) => {
-        const scroll = event.deltaY;
-        g_globalScale *= (-scroll) * 0.001 + 1;
+
+    // Make camera zoom on scroll
+    canvas.addEventListener('wheel', (event) => {
+        const zoom = (-event.deltaY) * 0.001 + 1;
+        g_GlobalScaleMatrix.scale(zoom, zoom, zoom);
         event.preventDefault();
     });
-    
-    // Zoom slider
-    document.getElementById("camera-zoom")
-        .addEventListener('mousemove', function() {
-            const zoom = (this.value * MAX_ZOOM) + (0.5 / MAX_ZOOM);
-            g_GlobalScaleMatrix.setScale(zoom, zoom, zoom);
-        });
     
     // FPS counter
     g_FPSCounter = document.getElementById("fps")
