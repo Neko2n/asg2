@@ -96,18 +96,14 @@ class geometry {
     const [px, py, pz] = this._pivot;
     let [psx, psy, psz] = [1.0, 1.0, 1.0];
     if (hasParent) {
-      [psx, psy, psz] = this.parent.getScale();
-    }
-    this.matrix.translate(tx*psx, ty*psy, tz*psz);
-    if (hasParent) {
       const [ptx, pty, ptz] = this.parent.getWorldTranslate();
       const [prx, pry, prz] = this.parent.getWorldRotate();
       const [ppx, ppy, ppz] = this.parent._pivot;
+      [psx, psy, psz] = this.parent.getScale();
       this.matrix.translate(ptx, pty, ptz);
-      this.matrix.translate(ppx*psx, ppy*psy, ppz*psz);
       this.matrix.rotate(prx, 1, 0, 0).rotate(pry, 0, 1, 0).rotate(prz, 0, 0, 1);
-      this.matrix.translate(-ppx*psx, -ppy*psy, -ppz*psz);
     }
+    this.matrix.translate(tx*psx, ty*psy, tz*psz);
     this.matrix.translate(px, py, pz);
     this.matrix.rotate(rx, 1, 0, 0).rotate(ry, 0, 1, 0).rotate(rz, 0, 0, 1);
     this.matrix.translate(-px, -py, -pz);
