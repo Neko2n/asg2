@@ -37,6 +37,7 @@ var FRAGMENT_SHADER = `
 `;
 
 const MAX_ZOOM = 2;
+const POKE_ANIM_LENGTH = 3000; // In ms
 
 g_GlobalRotateXMatrix = new Matrix4();
 g_GlobalRotateYMatrix = new Matrix4();
@@ -46,10 +47,20 @@ g_FrameDelta = 0;
 g_FrameCount = 0;
 g_FPSCounter = null;
 g_Frozen = false;
-g_Poked = 0;
+g_Poked = -POKE_ANIM_LENGTH;
 
 Shapes = [];
-RootShape = null;
+
+// Animal parts
+head = null; // root
+beak = null;
+eyeLeft = null;
+eyeRight = null;
+body = null;
+wingLeft = null;
+wingRight = null;
+wingLeftOuter = null;
+wingRightOuter = null;
 
 // Draws geometry.
 function renderScene() {
@@ -67,14 +78,18 @@ function renderScene() {
 function animate() {
     if (g_Frozen === true) return;
     const t = performance.now();
-    if (t - g_Poked < 3000) {
+    if (t - g_Poked < POKE_ANIM_LENGTH) {
         // Poking animation
         return;
     }
     // Idle animation
-    if (RootShape instanceof geometry) {
-        const s = Math.sin(t/1000)/10;
-        RootShape.translate(0, s, 0);
+    const s = Math.sin(t/1000)/10;
+    if (head instanceof geometry) {
+        head.translate(0, s + 0.4, 0);
+    }
+    if (wingLeft instanceof geometry) {
+        const [x, y, z] = wingLeft.getRotate();
+        wingLeft.rotate(x, y, z);
     }
 }
 
@@ -144,6 +159,22 @@ function hookElements() {
         .addEventListener('mousedown', function() {
             g_Frozen = !g_Frozen;
         });
+    
+    // Part rotation sliders
+    document.getElementById("slider-head")
+        .addEventListener('mousemove', function() {
+            let [x, y, z] = head.getRotate();
+            if (this.value === y) return;
+            head.rotate(x, this.value, z);
+            [x, y, z] = body.getRotate();
+            body.rotate(x, -this.value, z);
+        });
+    document.getElementById("slider-body")
+        .addEventListener('mousemove', function() {
+            let [x, y, z] = body.getRotate();
+            if (this.value === z) return;
+            body.rotate(x, y, this.value);
+        });
 }
 
 function initGL() {
@@ -166,60 +197,57 @@ function initGL() {
 }
 
 function defineShapes() {
-    let head = new cube(null, [1, 1, 1]);
-    head.translate(0, 0.4, 0);
+    head = new cube(null, [1, 1, 1]);
+    head.translate(0, 0.5, 0);
     head.scale(0.25, 0.25, 0.25);
-    head.rotate(0, 90, 0);
     Shapes.push(head);
     RootShape = head;
 
-    let beak = new triangle(head, [1, 0.95, 0.8]);
-    beak.translate(0.26, 0.4, 0);
-    beak.scale(.2, .3, 1);
+    beak = new triangle(head, [1, 0.95, 0.8]);
+    beak.translate(1.01, 0, 0);
+    beak.scale(0.2, 0.2, 0.01);
     beak.rotate(180, 90, 0);
     Shapes.push(beak);
 
-    let eyeLeft = new triangle(head, [0.1, 0.1, 0.1]);
-    eyeLeft.translate(0.1, 0.5, 0.26);
-    eyeLeft.scale(.1, .2, 1);
+    eyeLeft = new triangle(head, [0.1, 0.1, 0.1]);
+    eyeLeft.translate(0.3, 0.3, 1.01);
+    eyeLeft.scale(.075, .15, 0.01);
     eyeLeft.rotate(0, 0, 270);
     Shapes.push(eyeLeft);
 
-    let eyeRight = new triangle(head, [0.1, 0.1, 0.1]);
-    eyeRight.translate(0.1, 0.5, -0.26);
-    eyeRight.scale(.1, .2, 1);
+    eyeRight = new triangle(head, [0.1, 0.1, 0.1]);
+    eyeRight.translate(0.3, 0.3, -1.01);
+    eyeRight.scale(.075, .15, 0.01);
     eyeRight.rotate(0, 0, 270);
     Shapes.push(eyeRight);
 
-    let body = new cube(head, [0.2, 0.16, 0.15]);
-    body.translate(0, -0.35, 0);
-    body.scale(0.28, 0.5, 0.28);
-    body.rotate(0, 0, 0);
+    body = new cube(head, [0.2, 0.16, 0.15]);
+    body.translate(0, -2.6, 0);
+    body.scale(0.3, 0.4, 0.3);
+    body.pivot(0, 0.5, 0);
     Shapes.push(body);
 
-    let wingLeft = new cube(body, [0.2, 0.16, 0.15]);
-    wingLeft.translate(-0.1, -0.2, 0.5);
-    wingLeft.scale(0.05, 0.3, 0.5);
-    wingLeft.rotate(-30, -30, 0);
+    wingLeft = new cube(body, [0.2, 0.16, 0.15]);
+    wingLeft.translate(0, 5.2, -1);
+    wingLeft.scale(0.01, 0.3, 0.3);
+    wingLeft.rotate(0, -90, -30);
     Shapes.push(wingLeft);
 
-    let wingRight = new cube(body, [0.2, 0.16, 0.15]);
-    wingRight.translate(-0.1, -0.2, -0.5);
-    wingRight.scale(0.05, 0.3, 0.5);
-    wingRight.rotate(30, 30, 0);
-    Shapes.push(wingRight);
+    // wingRight = new cube(body, [0.2, 0.16, 0.15]);
+    // wingRight.translate(0, 0, 0.45);
+    // wingRight.scale(0.01, 0.3, 0.3);
+    // wingRight.rotate(0, 90, -30);
+    // Shapes.push(wingRight);
 
-    let wingLeftOuter = new cube(wingLeft, [0.2, 0.16, 0.15]);
-    wingLeftOuter.translate(-0.7, -0.15, 1.2);
-    wingLeftOuter.scale(0.05, 0.4, 0.6);
-    wingLeftOuter.rotate(-50, -50, 10);
-    Shapes.push(wingLeftOuter);
+    // wingLeftOuter = new cube(wingLeft, [0.2, 0.16, 0.15]);
+    // wingLeftOuter.translate(0, -0.5, 0);
+    // wingLeftOuter.scale(0.01, 0.3, 0.3);
+    // Shapes.push(wingLeftOuter);
 
-    let wingRightOuter = new cube(wingRight, [0.2, 0.16, 0.15]);
-    wingRightOuter.translate(-0.1, -0.2, -0.5);
-    wingRightOuter.scale(0.05, 0.3, 0.5);
-    wingRightOuter.rotate(30, 30, 0);
-    Shapes.push(wingRightOuter);
+    // wingRightOuter = new cube(wingRight, [0.2, 0.16, 0.15]);
+    // wingRightOuter.translate(0, -0.5, 0);
+    // wingRightOuter.scale(0.01, 0.3, 0.3);
+    // Shapes.push(wingRightOuter);
 }
 
 function connectVariablesToGLSL() {
