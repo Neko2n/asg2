@@ -83,13 +83,25 @@ function animate() {
         return;
     }
     // Idle animation
-    const s = Math.sin(t/1000)/10;
+    const s = Math.sin(t/100);
     if (head instanceof geometry) {
-        head.translate(0, s + 0.4, 0);
+        head.translate(0, s/10 + 0.4, 0);
     }
     if (wingLeft instanceof geometry) {
         const [x, y, z] = wingLeft.getRotate();
-        wingLeft.rotate(x, y, z);
+        wingLeft.rotate(x, y, -90 + s * 20);
+    }
+    if (wingRight instanceof geometry) {
+        const [x, y, z] = wingRight.getRotate();
+        wingRight.rotate(x, y, -90 + s * 20);
+    }
+    if (wingLeftOuter instanceof geometry) {
+        const [x, y, z] = wingLeftOuter.getRotate();
+        wingLeftOuter.rotate(x, y, s * 20);
+    }
+    if (wingRightOuter instanceof geometry) {
+        const [x, y, z] = wingRightOuter.getRotate();
+        wingRightOuter.rotate(x, y, s * 20);
     }
 }
 
@@ -153,28 +165,6 @@ function hookElements() {
     
     // FPS counter
     g_FPSCounter = document.getElementById("fps")
-
-    // Animation toggle
-    document.getElementById("toggle-anim")
-        .addEventListener('mousedown', function() {
-            g_Frozen = !g_Frozen;
-        });
-    
-    // Part rotation sliders
-    document.getElementById("slider-head")
-        .addEventListener('mousemove', function() {
-            let [x, y, z] = head.getRotate();
-            if (this.value === y) return;
-            head.rotate(x, this.value, z);
-            [x, y, z] = body.getRotate();
-            body.rotate(x, -this.value, z);
-        });
-    document.getElementById("slider-body")
-        .addEventListener('mousemove', function() {
-            let [x, y, z] = body.getRotate();
-            if (this.value === z) return;
-            body.rotate(x, y, this.value);
-        });
 }
 
 function initGL() {
@@ -196,7 +186,7 @@ function initGL() {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 }
 
-function defineShapes() {
+function defineAnimal() {
     head = new cube(null, [1, 1, 1]);
     head.translate(0, 0.5, 0);
     head.scale(0.25, 0.25, 0.25);
@@ -222,32 +212,36 @@ function defineShapes() {
     Shapes.push(eyeRight);
 
     body = new cube(head, [0.2, 0.16, 0.15]);
-    body.translate(0, -2.6, 0);
+    body.pivot(0, 1, 0);
+    body.translate(0, -1, 0);
     body.scale(0.3, 0.4, 0.3);
-    body.pivot(0, 0.5, 0);
     Shapes.push(body);
 
     wingLeft = new cube(body, [0.2, 0.16, 0.15]);
-    wingLeft.translate(0, 5.2, -1);
+    wingLeft.translate(0, 0, -1);
     wingLeft.scale(0.01, 0.3, 0.3);
     wingLeft.rotate(0, -90, -30);
+    wingLeft.pivot(0, 1, 0);
     Shapes.push(wingLeft);
 
-    // wingRight = new cube(body, [0.2, 0.16, 0.15]);
-    // wingRight.translate(0, 0, 0.45);
-    // wingRight.scale(0.01, 0.3, 0.3);
-    // wingRight.rotate(0, 90, -30);
-    // Shapes.push(wingRight);
+    wingRight = new cube(body, [0.2, 0.16, 0.15]);
+    wingRight.translate(0, 0, 1);
+    wingRight.scale(0.01, 0.3, 0.3);
+    wingRight.rotate(0, 90, -30);
+    wingRight.pivot(0, 1, 0);
+    Shapes.push(wingRight);
 
-    // wingLeftOuter = new cube(wingLeft, [0.2, 0.16, 0.15]);
-    // wingLeftOuter.translate(0, -0.5, 0);
-    // wingLeftOuter.scale(0.01, 0.3, 0.3);
-    // Shapes.push(wingLeftOuter);
+    wingLeftOuter = new cube(wingLeft, [0.2, 0.16, 0.15]);
+    wingLeftOuter.translate(0, -1, 0);
+    wingLeftOuter.scale(0.01, 0.3, 0.3);
+    wingLeftOuter.pivot(0, 1, 0);
+    Shapes.push(wingLeftOuter);
 
-    // wingRightOuter = new cube(wingRight, [0.2, 0.16, 0.15]);
-    // wingRightOuter.translate(0, -0.5, 0);
-    // wingRightOuter.scale(0.01, 0.3, 0.3);
-    // Shapes.push(wingRightOuter);
+    wingRightOuter = new cube(wingRight, [0.2, 0.16, 0.15]);
+    wingRightOuter.translate(0, -1, 0);
+    wingRightOuter.scale(0.01, 0.3, 0.3);
+    wingRightOuter.pivot(0, 1, 0);
+    Shapes.push(wingRightOuter);
 }
 
 function connectVariablesToGLSL() {
@@ -307,6 +301,6 @@ function main() {
     initGL();
     connectVariablesToGLSL();
     hookElements();
-    defineShapes();
+    defineAnimal();
     tick();
 }

@@ -2,7 +2,6 @@ class geometry {
   constructor(parent) {
     this.vertices = new Float32Array();
     this.matrix = new Matrix4();
-    this.modelMatrix = new Matrix4();
     this._translation = [0.0, 0.0, 0.0];
     this._rotation = [0.0, 0.0, 0.0];
     this._scale = [1.0, 1.0, 1.0];
@@ -11,10 +10,7 @@ class geometry {
     if (parent instanceof geometry) {
       this.parent = parent;
       parent._children.push(this);
-      const [ptx, pty, ptz] = this.parent._translation;
-      const [prx, pry, prz] = this.parent._rotation;
-      this.matrix.rotate(prx, pry, prz);
-      this.matrix.translate(ptx, pty, ptz);
+      this._updateMatrix();
     }
   }
 
@@ -58,24 +54,9 @@ class geometry {
     return this._scale;
   }
 
-  // Returns the geometry's translation in world space.
-  getWorldTranslate() {
-    let [x, y, z] = this._translation;
-    if (this.parent instanceof geometry) {
-      let [px, py, pz] = this.parent.getWorldTranslate();
-      [x, y, z] = [x + px, y + py, z + pz];
-    }
-    return [x, y, z];
-  }
-
-  // Returns the geometry's rotation in world space.
-  getWorldRotate() {
-    let [x, y, z] = this._rotation;
-    if (this.parent instanceof geometry) {
-      let [px, py, pz] = this.parent.getWorldRotate();
-      [x, y, z] = [x + px, y + py, z + pz];
-    }
-    return [x, y, z];
+  // Returns the geometry's pivot.
+  getPivot() {
+    return this._pivot;
   }
 
   // Draws the geometry shape.
@@ -86,28 +67,34 @@ class geometry {
     gl.drawArrays(gl.TRIANGLES, 0, this.vertices.length / 6);
   }
 
-  // Updates the matrix of this geometry.
   _updateMatrix() {
     this.matrix.setIdentity();
     const hasParent = (this.parent instanceof geometry);
     const [tx, ty, tz] = this.getTranslate();
     const [rx, ry, rz] = this.getRotate();
     const [sx, sy, sz] = this.getScale();
-    const [px, py, pz] = this._pivot;
+    const [px, py, pz] = this.getPivot();
     let [psx, psy, psz] = [1.0, 1.0, 1.0];
+
+    // Shift into parent space
     if (hasParent) {
-      const [ptx, pty, ptz] = this.parent.getWorldTranslate();
-      const [prx, pry, prz] = this.parent.getWorldRotate();
-      const [ppx, ppy, ppz] = this.parent._pivot;
+      this.matrix.multiply(this.parent.matrix);
       [psx, psy, psz] = this.parent.getScale();
-      this.matrix.translate(ptx, pty, ptz);
-      this.matrix.rotate(prx, 1, 0, 0).rotate(pry, 0, 1, 0).rotate(prz, 0, 0, 1);
+      this.matrix.scale(1.0 / psx, 1.0 / psy, 1.0 / psz);
     }
-    this.matrix.translate(tx*psx, ty*psy, tz*psz);
-    this.matrix.translate(px, py, pz);
+
+    // Translate the pivot in local space
+    this.matrix.translate(tx * psx, ty * psy, tz * psz);
+
+    // Rotate around the pivot
     this.matrix.rotate(rx, 1, 0, 0).rotate(ry, 0, 1, 0).rotate(rz, 0, 0, 1);
+
+    // Apply world-space scale
+    this.matrix.scale(sx === 0 ? 0.001 : sx, sy === 0 ? 0.001 : sy, sz === 0 ? 0.001 : sz);
+
+    // Shift origin to pivot
     this.matrix.translate(-px, -py, -pz);
-    this.matrix.scale(sx, sy, sz);
+
     for (const child of this._children) {
       child._updateMatrix();
     }
